@@ -1,0 +1,545 @@
+---
+title: "GBOP2: Generalized Bayesian Optimal Phase II Design"
+output: 
+  rmarkdown::html_document:
+    toc: true
+    toc_depth: 4
+    toc_float: true
+    theme: cerulean    
+vignette: >
+  %\VignetteIndexEntry{Vignette Title}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+
+## Installation
+
+The R package **GBOP2** is available for free on the Comprehensive R Archive Network (CRAN). It offers functions for implementing G-BOP2 design with various Particle Swarm Optimization (PSO) algorithms, including PSO-Default, PSO-Quantum, PSO-DEXP, and PSO-GO. The package can be loaded with the following command:
+
+
+```{r, message=FALSE, warning=FALSE}
+#install.packages("GBOP2")
+library(GBOP2)
+```
+
+
+
+## Summary of functions
+
+```{r,  echo=FALSE}
+library(knitr)
+
+# Create the data frame
+data <- data.frame(
+  Category = c("Sample Size Minimization", "Power Maximization", ""),
+  `Efficacy - Single Boundary` = c("GBOP2_minSS_singleE", "GBOP2_maxP_singleE", ""),
+  `Efficacy - Dual Boundary` = c("GBOP2_minSS_dualE", "GBOP2_maxP_dualE", ""),
+  `Toxicity and Efficacy` = c("GBOP2_minSS_TE", "GBOP2_maxP_TE", "")
+)
+
+# Render the table
+kable(data, align = "c", col.names = c("", "Efficacy - Single Boundary", "Efficacy - Dual Boundary", "Toxicity and Efficacy"))
+
+```
+
+
+
+## Sample size minimization
+#### Efficacy (single boundary)- futility monitoring only
+
+**Objective function**:
+
+
+$$
+L = \left[ u \cdot n + w \cdot g(N \mid H_0) + (1 - w) \cdot g(N \mid H_1) \right] \\
++ \left[ I(\alpha > \alpha_0) + I(1 - \beta < 1 - \beta_0) + I(n > n_{\text{max}}) \right] \cdot n_{\text{max}}
+$$
+
+The parameters $u$ and $w$ are in the range $[0,1]$ and represent the pre-assigned weights for the study sample size $N$ and how it is distributed under the null hypothesis $H_0$ and the alternative hypothesis $H_1$, respectively. The score $g$ refers to some specified function on the sample size variable N and takes the unit-bounded value in $[0,1]$. The constants $\alpha_0$ and $\beta_0$ refer to the nominal Type I and Type II error rates, while $n_{\text{max}}$ is the maximum allowable sample size. While $w$ is often set to 0, 1, or 1/2 in optimal designs to indicate diverse trial-specific considerations on $H_0$ and $H_1$, we recommend $w= 2/3$ to reflect the observation that only 1/3 of phase II studies successfully transit to phase III, suggesting empirically 2/3 chance in favor of $H_0$. 
+
+
+**For example:**
+Simon's two stage design can be formulated in the corresponding form:
+$$
+g(N \mid H_.) = E(N \mid H_.)/n,  w = 1, u =0
+$$
+
+
+
+The following examples illustrate the different designs identified by the PSO-GO algorithm. Note that the PSO-GO algorithm guarantees convergence to the global optimum almost surely when using a large `nParallel` value. If the global optimum is not reached, try increasing the `nParallel` value or running the algorithm again with different seeds.
+
+The `GBOP2_minSS_single` function is designed to identify the optimal and minimax designs for single futility boundary, which meets the pre-specified Type I and Type II error rates by using PSO_GO algorithm. Parameters such as `nlooks`, `weight`, `maxPatients`, `Nmin_cohort1`, and `Nmin_increase` provide users with more flexibility to adjust the number of interim looks, the weight of the sample size under the null hypothesis, and other design characteristics. When users choose `pso_method` equals "all", `GBOP2_minSS_single` function conducts PSO_Ensemble in parallel by indicating the number of parallel through `nParallel` option.  Otherwise, users can specify the `pso_method` option as `default`, `quantum`, or `dexp` to conduct a single PSO algorithm. 
+
+
+
+```{r, message=FALSE, warning=FALSE, eval = FALSE}
+## PSO-GO
+optimal_GO_single <- GBOP2_minSS_singleE(
+                  design = "optimal", ## "optimal" or "minimax", "unified"
+                  unified.u = 1, ## specify when design = "unified", u in [0, 1]
+                  nlooks = 2, ## number of interim looks
+                  b1n = 0.2, ## response rate in null hypothesis 
+                  b1a = 0.4, ## response rate in alternative hypothesis
+                  err1 = 0.05, ## type I error
+                  nParallel = 3, ## number of PSO-ensemble
+                  minPower = 0.8, ## power
+                  weight = 1, ## weight of sample size under null
+                  maxPatients = 50, ## maximum number of patients
+                  Nmin_cohort1 = 5, ## minimum number of first cohort
+                  Nmin_increase = 5, ## minimum number of increase in each cohort
+                  pso_method = "all", ## choose from "all", ""default", "quantum" or "dexp"
+                  seed = 456,
+                  nSwarm = 64, ## nSwarm in PSO 
+                  maxIter = 200, ## maxIter in PSO
+                  nCore = 8) ## number of core
+```
+
+```{r echo=FALSE, out.width="900px", warning=FALSE, message=FALSE}
+link = system.file("Flowchart", "progressbar.png", package = "GBOP2")
+knitr::include_graphics(link)
+
+```
+
+
+```{r, message=FALSE, warning=FALSE, include=FALSE}
+## PSO-GO
+optimal_GO_single <- GBOP2_minSS_singleE(
+                  design = "optimal", ## "optimal" or "minimax", "unified"
+                  unified.u = 1, ## specify when design = "unified", u in [0, 1]
+                  nlooks = 2, ## number of interim looks
+                  b1n = 0.2, ## response rate in null hypothesis 
+                  b1a = 0.4, ## response rate in alternative hypothesis
+                  err1 = 0.05, ## type I error
+                  nParallel = 3, ## number of PSO-ensemble
+                  minPower = 0.8, ## power
+                  weight = 1, ## weight of sample size under null
+                  maxPatients = 50, ## maximum number of patients
+                  Nmin_cohort1 = 5, ## minimum number of first cohort
+                  Nmin_increase = 5, ## minimum number of increase in each cohort
+                  pso_method = "all", ## choose from "all", ""default", "quantum" or "dexp"
+                  seed = 456,
+                  nSwarm = 64, ## nSwarm in PSO 
+                  maxIter = 200,  ## maxIter in PSO 
+                  nCore = 8) ## number of core
+```
+
+
+**Interpretation:**  
+The `GBOP2_minSS_singleE` function successfully identified an optimal three-stage design with a power of over 80% and a type I error rate of less than 5% . The optimized sample size for each stage are 8, 22, and 38 respectively, and the optimized stopping boundaries for each stage are 1, 5, and 11. The trial will be terminated and the drug will be considered not promising if the observed number of responses at any stage is less than or equal to  the corresponding stopping boundary. Otherwise, the drug will be declared promising. The **parameters** section provides key values used in determining the optimal boundaries.
+
+```{r, message=FALSE, warning=FALSE}
+summary(optimal_GO_single)
+```
+
+
+
+
+#### Efficacy (dual boundary) - futility monitoring and superiority detecting
+
+The `GBOP2_minSS_dual` function is designed to identify the optimal and minimax designs for dual futility boundaries, which meets the pre-specified Type I and Type II error rates by using PSO_GO algorithm. When `pso_method` equals "all", `GBOP2_minSS_dual` function conducts PSO_Ensemble in parallel, otherwise, users can specify the `pso_method` option as `default`, `quantum`, or `dexp` to conduct a single PSO algorithm. The following  example show the optimal design for dual futility boundary identified by the PSO-GO.
+
+```{r, warning=FALSE, eval=FALSE}
+## PSO-GO
+optimal_GO_dual <- GBOP2_minSS_dualE(
+    design = "optimal", ## choose from "optimal", "minimax" and "unified"
+    unified.u = 1, ## specify when design = "unified", u in [0, 1]
+    nlooks = 1, ## number of interim looks (R)
+    b1n = 0.2, ## response rate in null hypothesis 
+    b1a = 0.4, ## response rate in alternative hypothesis
+    err1 = 0.05, ## type I error
+    nParallel = 3, ## number of PSO_ensemble
+    minPower = 0.8, ## power
+    weight = 0.5, ## weight of sample size under null
+    maxPatients = 50, ## maximum number of patients
+    Nmin_cohort1 = 10, ## minimum number of first cohort
+    Nmin_increase = 5, ## minimum number of increase in each cohort
+    pso_method = "all", ## choose from "all", ""default", "quantum" or "dexp"
+    seed = 123,
+    nSwarm = 64, ## nSwarm in PSO 
+    maxIter = 400, ## maxIter in PSO
+    nCore = 8) ## number of core
+
+
+```
+
+
+
+```{r echo=FALSE, out.width="900px", warning=FALSE, message=FALSE}
+link = system.file("Flowchart", "progressbar.png", package = "GBOP2")
+knitr::include_graphics(link)
+
+```
+
+
+```{r, include=FALSE}
+## PSO-GO
+optimal_GO_dual <- GBOP2_minSS_dualE(
+    design = "optimal",
+    unified.u = 1, ## specify when design = "unified", u in [0, 1]
+    nlooks = 1,
+    b1n = 0.2, ## under null 
+    b1a = 0.4, ## under alternative
+    err1 = 0.05,
+    nParallel = 3,
+    minPower = 0.8,
+    weight = 0.5,
+    maxPatients = 50,
+    Nmin_cohort1 = 10,
+    Nmin_increase = 5,
+    pso_method = "all",
+    seed = 123,
+    nSwarm = 64,
+    maxIter = 400,
+    nCore = 8)
+
+
+```
+
+**Interpretation:**  
+The `GBOP2_minSS_dualE` function successfully identified an optimal two-stage design with a power exceeding 80% and a type I error rate below 5%. The optimized sample sizes for each stage are 14 and 37, respectively. The stopping boundaries for futility are 3 and 7, and the boundaries for efficacy are 7 and 12.The trial will be terminated for futility, and the drug will be considered not promising if the observed number of responses is $≤$ 3 in the first stage or $≤$ 7 in the second stage. Conversely, the trial will be terminated for efficacy, and the drug will be considered promising if the observed number of responses is $≥$ 7 in the first stage or $≥$ 12 in the second stage.The **parameters** section provides key values used in determining the optimal boundaries.
+
+
+```{r, message=FALSE, warning=FALSE}
+summary(optimal_GO_dual)
+```
+
+
+#### Toxicity and Efficacy - joint safety and futility monitoring
+
+The `GBOP2_minSS_TE` function is designed to identify the optimal and minimax designs for toxicity and efficacy boundaries, which meets the pre-specified Type I and Type II error rates by using PSO_GO algorithm. When `pso_method` equals "all", `GBOP2_minSS_dual` function conducts PSO_Ensemble in parallel, otherwise, users can specify the `pso_method` option as `default`, `quantum`, or `dexp` to conduct a single PSO algorithm. The following example show the optimal design for dual futility boundaries identified by the PSO-GO.
+
+```{r,  eval=FALSE}
+Optimal_GO_TE <- GBOP2_minSS_TE(
+                            design = "optimal", ## choose from "optimal", "minimax" and "unified"
+                            unified.u = 1, ## specify when design = "unified", u in [0, 1]
+                            nlooks = 1, ## number of interim looks (R)
+                            skip_efficacy = NULL, ## A vector with a length equal to the number of stages. The default is NULL (no skip for efficacy). If skipping is enabled, set the corresponding stage to 1; otherwise, set it to 0. For example, c(1,0) indicates that futility monitoring is skipped in the first stage but applied in the second stage.
+                            skip_toxicity = NULL, ## A vector with a length equal to the number of stages. The default is NULL (no skip for toxicity). If skipping is enabled, set the corresponding stage to 1; otherwise, set it to 0. For example, c(1,0) indicates that safety monitoring is skipped in the first stage but applied in the second stage.
+                            maxPatients = 26, ## maximum number of patients
+                            Nmin_cohort1 = 13, ## minimum number of first cohort
+                            Nmin_increase = 13, ## minimum number of increase in each cohort
+                            nParallel = 3, ## number of PSO_ensemble
+                            e1n = 0.3, ## efficacy under null
+                            e2n = 0.4, ## toxicity under null
+                            e3n = 0.2, ## efficacy and toxicity under null, quantifying the correlation between efficacy and toxicity
+                            e1a = 0.6, ## efficacy under alternative
+                            e2a = 0.2, ## toxicity under alternative
+                            e3a = 0.15,## efficacy and toxicity under alternative, quantifying the correlation between efficacy and toxicity
+                            err_eff = 0.1, ## type I error for futile
+                            err_tox = 0.1, ## type I error for toxic
+                            err_all = 0.05, ## type I futile and toxic,
+                            power_eff = 0.8, ## power for futile
+                            power_tox = 0.8, ## power for toxic
+                            power_all = 0.8, ## power for futile and toxic
+                            pso_method = "all", ## choose from "all", ""default", "quantum" or "dexp"
+                            nSwarm = 32, ## nSwarm in PSO 
+                            maxIter = 100, ## maxIter in PSO
+                            nCore = 8) ## number of core
+
+```
+
+
+```{r echo=FALSE, out.width="900px", warning=FALSE, message=FALSE}
+link = system.file("Flowchart", "progressbar.png", package = "GBOP2")
+knitr::include_graphics(link)
+
+```
+
+
+```{r, include=FALSE}
+Optimal_GO_TE <- GBOP2_minSS_TE(
+                            design = "optimal",
+                            unified.u = 1, 
+                            nlooks = 1,
+                            skip_efficacy = NULL,
+                            skip_toxicity = NULL,
+                            maxPatients = 26,
+                            Nmin_cohort1 = 13,
+                            Nmin_increase = 13,
+                            nParallel = 3,
+                            e1n = 0.3, ## E under null
+                            e2n = 0.4, ## T under null
+                            e3n = 0.2, ## both E and T under null, quantifying the correlation between E and T
+                            e1a = 0.6, ## E under alternative
+                            e2a = 0.2, ## T under alternative
+                            e3a = 0.15,## ## both E and T under alternative, quantifying the correlation between E and T
+                            err_eff = 0.1,
+                            err_tox = 0.1,
+                            err_all = 0.05,
+                            power_eff = 0.8,
+                            power_tox = 0.8,
+                            power_all = 0.8,
+                            pso_method = "all",
+                            nSwarm = 32,
+                            maxIter = 100,
+                            nCore = 8)
+
+
+```
+
+**Interpreting**
+$H_{01}$ represents that the treatment is safe but futile, $H_{10}$ represents that the treatment is efficacious but toxic, and $H_{00}$ represents the global null that the treatment is futile and toxic. $H_{11}$ denote claiming that the treatment is efficacious and safe. The `GBOP2_minSS_TE` function identified an optimal two-stage design with cohort sizes of 13 and 26 patients. The trial stops early for futility if efficacy responses are $≤ 3$ at stage 1 or $≤ 10$ at stage 2, and stops early for toxicity if $≥ 5$ toxicities occur at stage 1 or $≥ 8$ at stage 2. This design achieves over $80\%$ power and efficiently balancing safety and effectiveness.
+
+```{r, message=FALSE, warning=FALSE}
+summary(Optimal_GO_TE)
+```
+
+
+
+
+
+## Power Maximization
+
+Objective function $L$:
+$$
+L = \beta
++ \left[ I(\alpha > \alpha_0) + I(1 - \beta < 1 - \beta_0) + I(n > n_{\text{max}}) \right] \cdot n_{\text{max}}
+$$
+
+The parameters $u$ and $w$ are in the range $[0,1]$ and represent the pre-assigned weights for the study sample size $N$ and how it is distributed under the null hypothesis $H_0$ and the alternative hypothesis $H_1$, respectively. The score $g$ refers to some specified function on the sample size variable N and takes the unit-bounded value in $[0,1]$. The constants $\alpha_0$ and $\beta_0$ refer to the nominal Type I and Type II error rates, while $n_{\text{max}}$ is the maximum allowable sample size.
+
+#### Efficacy (single boundary)- futility monitoring only
+The `GBOP2_maxP_singleE` function is designed to identify the design which maximizing the power for a single futility boundary, which meets the pre-specified Type I and Type II error rates by using PSO_GO algorithm. The parameters are the same as in the `GBOP2_minSS_single` function except for the `totalPatients`, which represents the total number of patients. Similarly, when users choose `pso_method` equals "all", `GBOP2_maxP_single` function conducts PSO_Ensemble in parallel by indicating the number of parallel through `nParallel` option.  Otherwise, users can specify the `pso_method` option as `default`, `quantum`, or `dexp` to conduct a single PSO algorithm. The following  example show the design maximizes the power identified by the PSO-GO.
+
+```{r, eval=FALSE}
+## PSO-GO
+power_GO_single <- GBOP2_maxP_singleE(
+    nlooks = 3, ## number of interim analyses
+    b1n = 0.2,  ## response rate under null hypothesis
+    b1a = 0.4,  ## response rate under alternative hypothesis
+    err1 = 0.05,  ## Type I error rate
+    nParallel = 3, ## number of parallel runs for global optimization
+    minPower = 0.8, ## desired minimum statistical power
+    totalPatients = 50,  ## total number of patients
+    Nmin_cohort1 = 15, ## minimum cohort size for the first stage
+    Nmin_increase = 8, ## minimum increment in cohort size for subsequent stages
+    pso_method = "all", ## choose from "all", "default", "quantum" or "dexp"
+    seed = 1024,
+    nSwarm = 64, ## nSwarm in PSO
+    maxIter = 200, ## maxIter in PSO
+    nCore = 8) ## number of core
+
+
+```
+
+
+```{r echo=FALSE, out.width="900px", warning=FALSE, message=FALSE}
+link = system.file("Flowchart", "progressbar.png", package = "GBOP2")
+knitr::include_graphics(link)
+
+```
+
+
+```{r, include=FALSE}
+## PSO-GO
+power_GO_single <- GBOP2_maxP_singleE(
+    nlooks = 3,
+    b1n = 0.2,  # Null hypothesis response rate
+    b1a = 0.4,  # Alternative hypothesis response rate
+    err1 = 0.05,  # Type I error rate
+    nParallel = 3,
+    minPower = 0.8, ## power
+    totalPatients = 50,  ## maximum number of patients
+    Nmin_cohort1 = 15,
+    Nmin_increase = 8,
+    pso_method = "all", ## three different pso or three single pso
+    seed = 1024,
+    nSwarm = 64,
+    maxIter = 200,
+    nCore = 8)
+
+
+```
+
+**Interpretation**
+The `GBOP2_maxP_singleE` function successfully identified an optimal four-stage design for maximizing power under a single boundary setting. The design specifies interim analyses after recruiting 25, 34, 42, and 50 patients. The optimized stopping boundaries are set at 5, 8, 11, and 14 responses at each stage. Specifically, the trial will terminate early and declare the drug not promising if the number of observed responses at each stage is less than or equal to these respective boundaries. Otherwise, the trial proceeds to the next stage or concludes positively at the final stage. This design achieves a high statistical power 
+over $80\%$ while maintaining a Type I error rate below 5%, balancing the ability to detect treatment efficacy with resource efficiency.
+
+```{r, message=FALSE, warning=FALSE}
+summary(power_GO_single)
+```
+
+
+
+
+#### Efficacy (dual boundary) - futility monitoring and superiority detecting
+
+The `GBOP2_maxP_dual` function is designed to identify the design that maximizing power for dual futility boundaries, which meets the pre-specified Type I and Type II error rates by using PSO_GO algorithm. When `pso_method` equals "all", `GBOP2_maxP_dual` function conducts PSO_Ensemble in parallel, otherwise, users can specify the `pso_method` option as `default`, `quantum`, or `dexp` to conduct a single PSO algorithm. The following example show the design that maximizing power for dual futility boundary identified by the PSO-GO.
+
+```{r, eval=FALSE}
+## PSO-GO
+power_GO_dual <- GBOP2_maxP_dualE(
+                           design = "optimal", ## fixed as "optimal", which can not be modified by user
+                           nlooks = 1, ## number of interim looks
+                           b1n = 0.2, ## response rate under the null 
+                           b1a = 0.4,  ## response rate under the alternative 
+                           err1 = 0.05,  ## Type I error 
+                           nParallel = 3, ## number of parallel PSO_Ensemble
+                           minPower = 0.8, ## minimum desired power
+                           totalPatients = 50, ## total number of patients
+                           Nmin_cohort1 = 10, ## minimum cohort size at the first stage
+                           Nmin_increase = 5, ## minimum increment of cohort size at subsequent stages
+                           pso_method = "all",  ## choose from "all", "default", "quantum" or "dexp"
+                           seed = 1024,
+                           nSwarm = 64, ## nSwarm in PSO
+                           maxIter = 400, ## maxIter in PSO
+                           nCore = 8) ## number of core
+
+
+```
+
+
+```{r echo=FALSE, out.width="900px", warning=FALSE, message=FALSE}
+link = system.file("Flowchart", "progressbar.png", package = "GBOP2")
+knitr::include_graphics(link)
+
+```
+
+
+
+```{r, include=FALSE}
+## PSO-GO
+power_GO_dual <- GBOP2_maxP_dualE(
+                           design = "optimal", ## fixed as "optimal", which can not be modified by user
+                           nlooks = 1,
+                           b1n = 0.2,
+                           b1a = 0.4,
+                           err1 = 0.05,
+                           nParallel = 3,
+                           minPower = 0.8,
+                           totalPatients = 50,
+                           Nmin_cohort1 = 10,
+                           Nmin_increase = 5,
+                           pso_method = "all",
+                           seed = 1024,
+                           nSwarm = 64,
+                           maxIter = 400,
+                           nCore = 8)
+
+
+```
+
+**Interpretation**
+
+The `GBOP2_maxP_dualE` function identified an optimal two-stage design with cohort sizes of 44 and 50 patients, maximizing power under dual boundaries. The trial will terminate early for futility if the number of responses is $≤ 7$ at stage 1 or $≤ 8$ at stage 2, or terminate early for efficacy if the number of responses is $≥ 14$ at stage 1 or $≥ 16$ at stage 2. This design achieves high statistical power (over 80%) while maintaining a controlled Type I error (less than 5%), effectively balancing trial efficiency, safety, and the ability to detect a true treatment effect.
+
+```{r, message=FALSE, warning=FALSE}
+summary(power_GO_dual)
+```
+
+
+
+
+#### Toxicity and Efficacy - joint safety and futility monitoring
+
+The `GBOP2_maxP_TE` function is designed to identify the design that maximizing power for TE boundary, which meets the pre-specified Type I and Type II error rates by using PSO_GO algorithm. When `pso_method` equals "all", `GBOP2_maxP_TE` function conducts PSO_Ensemble in parallel, otherwise, users can specify the `pso_method` option as `default`, `quantum`, or `dexp` to conduct a single PSO algorithm. The following example show the design that maximizing power for TE boundary identified by the PSO-GO.
+
+```{r, eval=FALSE}
+## PSO-GO
+power_GO_TE <- GBOP2_maxP_TE(pso_method = "all", ## choose from "all", "default", "quantum" or "dexp"
+                         nlooks =1 ,  ## number of interim analyses
+                         skip_efficacy = NULL, ## Default: NULL no skipping for efficacy.
+                         ## Input a vector as the same length as total stages, 1 is skip. 
+                         ## Ex: skip for efficacy for the first stage of a two stage design input c(1,0).
+                         skip_toxicity = NULL, ## Default: NULL no skipping for toxicity.
+                         ## Input a vector as the same length as total stages, 1 is skip. 
+                         ## Ex: skip for toxicity. for the first stage of a two stage design input c(1,0).
+                         totalPatients = 26, ## total number of patients 
+                         Nmin_cohort1 = 10,   ## minimum number of patients in the first stage
+                         Nmin_increase = 5, ## minimum increment in cohort size per stage
+                         nParallel = 3, ## number of parallel PSO_Ensemble
+                         e1n = 0.3, ## efficacy rate under null hypothesis
+                         e2n = 0.4, ## toxicity rate under null hypothesis
+                         e3n = 0.2, ## joint efficacy-toxicity correlation under null
+                         e1a = 0.6,  ## efficacy rate under alternative hypothesis
+                         e2a = 0.2,  ## toxicity rate under alternative hypothesis
+                         e3a = 0.15, ## joint efficacy-toxicity correlation under alternative
+                         err_eff = 0.1, ## type I error for efficacy (futile but safe)
+                         err_tox = 0.1,  ## type I error for toxicity (effective but toxic)
+                         err_all = 0.05,  ## type I error for futile and toxic outcomes
+                         power_eff = 0.8, ##  power target for efficacy
+                         power_tox = 0.8,  ##  power target for toxicity
+                         power_all = 0.8, ##  power target for joint efficacy-toxicity
+                         nSwarm = 32, ## nSwarm in PSO
+                         seed = 123,
+                         maxIter = 100, ## maxIter IN PSO
+                         nCore = 8 ## number of core
+          )
+
+
+```
+
+
+```{r echo=FALSE, out.width="900px", warning=FALSE, message=FALSE}
+link = system.file("Flowchart", "progressbar.png", package = "GBOP2")
+knitr::include_graphics(link)
+
+```
+
+
+```{r, include=FALSE}
+## PSO-GO
+power_GO_TE <- GBOP2_maxP_TE(pso_method = "all",
+                         nlooks =1 ,
+                         skip_efficacy = NULL, # Default: NULL no skipping for efficacy.
+                         ## Input a vector as the same length as total stages, 1 is skip. 
+                         ## Ex: skip for the first stage of a two stage design input c(1,0).
+                         skip_toxicity = NULL, # Default: NULL no skipping for toxicity.
+                         ## Input a vector as the same length as total stages, 1 is skip. 
+                         ## Ex: skip for the first stage of a two stage design input c(1,0).
+                         totalPatients = 26,
+                         Nmin_cohort1 = 10, 
+                         Nmin_increase = 5,
+                         nParallel = 3,
+                         e1n = 0.3,
+                         e2n = 0.4,
+                         e3n = 0.2,
+                         e1a = 0.6,
+                         e2a = 0.2,
+                         e3a = 0.15,
+                         err_eff = 0.1,
+                         err_tox = 0.1,
+                         err_all = 0.05,
+                         power_eff = 0.8,
+                         power_tox = 0.8,
+                         power_all = 0.8,
+                         nSwarm = 32,
+                         seed = 123,
+                         maxIter = 100,
+                         nCore = 8
+          )
+
+
+```
+
+**Interpretation**
+
+The `GBOP2_maxP_TE` function identified an optimal two-stage design with cohort sizes of 21 and 26 patients to maximize power under joint toxicity-efficacy (TE) boundaries. The trial stops early for futility (ineffectiveness) if efficacy responses are $≤ 8$ at stage 1 or $≤ 9$ at stage 2, and stops early for toxicity (safety concerns) if toxicities are $≥ 7$ at stage 1 or $≥ 8$ at stage 2. This design achieves a statistical power over 80%, effectively controlling Type I error rates and balancing patient safety, efficacy detection, and trial efficiency.
+
+```{r, message=FALSE, warning=FALSE}
+summary(power_GO_TE)
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
